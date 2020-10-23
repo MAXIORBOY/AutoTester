@@ -1,5 +1,5 @@
 # Auto Tester is a program which facilitates rote learning. It allows to create own databases and then allows to test yourself from the knowledge of those databases. It is ideally suited to study about new foreign vocabulary, irregular verbs, historical events, product codes and many, many more.
-The program implements the modern methods of learning such as: programmed learning and flashcards.
+The program implements modern methods of learning such as: programmed learning and flashcards.
 
 Keep in mind that during tests your answers have to be identical to those saved in the base.
 
