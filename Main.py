@@ -28,7 +28,6 @@ class MainWindow:
         tk.Label(self.window, text='', font=12).pack()
 
         sf = ScrolledFrame(self.window, width=530, height=400)
-        sf.bind_arrow_keys(self.window)
         sf.bind_scroll_wheel(self.window)
         sf.pack()
         inner_frame = sf.display_widget(tk.Frame)
@@ -79,7 +78,7 @@ class BaseCreator:
         self.threshold = 5
         self.columns_names = []
         self.spinbox_labels = ['Number of columns', 'Threshold', 'Default number of questions']
-        self.spinbox_params = [(2, 8), (1, 100), (1, 100)]
+        self.spinbox_params = [(2, 8), (1, 50), (1, 50)]
         self.radio_buttons_labels = ['Random', 'First column', 'Last column']
         self.base = Base('Saved bases.hdf5')
 
@@ -150,7 +149,7 @@ class BaseCreator:
         for i in range(len(self.spinbox_labels)):
             frame = tk.Frame(self.window)
             tk.Label(frame, text=self.spinbox_labels[i] + ': ', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack(side=tk.LEFT)
-            tk.Spinbox(frame, from_=self.spinbox_params[i][0], to=self.spinbox_params[i][1], width=5, bd=4, font=12, textvariable=variables[i + 1]).pack(side=tk.LEFT)
+            tk.Spinbox(frame, from_=self.spinbox_params[i][0], to=self.spinbox_params[i][1], width=5, bd=4, font=12, textvariable=variables[i + 1], state="readonly").pack(side=tk.LEFT)
             tk.Label(frame, text='\n', font=12).pack()
             frame.pack(anchor='w')
 
@@ -240,7 +239,6 @@ class BaseCreator:
         tk.Label(self.window, text='', font=12).pack()
 
         sf = ScrolledFrame(self.window, width=520, height=400)
-        sf.bind_arrow_keys(self.window)
         sf.bind_scroll_wheel(self.window)
         sf.pack()
         inner_frame = sf.display_widget(tk.Frame)
@@ -312,7 +310,6 @@ class BaseExplorer:
         tk.Label(self.window, text='', font=12).pack()
 
         sf = ScrolledFrame(self.window, width=self.calculate_window_width(), height=335)
-        sf.bind_arrow_keys(self.window)
         sf.bind_scroll_wheel(self.window)
         sf.pack()
         inner_frame = sf.display_widget(tk.Frame)
@@ -323,13 +320,16 @@ class BaseExplorer:
             for j in range(len(self.base.file[self.title][i])):
                 if j < len(self.base.file[self.title][i]) - 1:
                     l_box = tk.Listbox(frame, width=30, height=1, justify=tk.CENTER, font=font.Font(family='Helvetica', size=12, weight='normal'))
+                    l_box.insert(0, self.base.file[self.title][i][j])
                 else:
                     l_box = tk.Listbox(frame, width=18, height=1, justify=tk.CENTER, font=font.Font(family='Helvetica', size=12, weight='normal'))
-                l_box.insert(0, self.base.file[self.title][i][j])
+                    l_box.insert(0, f"{self.base.file[self.title][i][j]}/{self.base.file[self.title].attrs['threshold']}")
                 l_box.pack(side=tk.LEFT)
             tk.Button(frame, text='EDIT', font=10, bd=4, command=lambda c=i: [self.base.file.close(), self.window.destroy(), BaseModifier(self.title, partial(get_button_index, c).args[0]).run()]).pack(side=tk.LEFT)
             tk.Button(frame, text='DELETE', font=10, bd=4, command=lambda c=i: [self.confirm_row_remove(partial(get_button_index, c).args[0])]).pack(side=tk.LEFT)
             frame.pack()
+
+        tk.Label(self.window, text=f"Rows: {len(self.base.file[self.title])}", bd=4, font=font.Font(family='Helvetica', size=12, weight='normal')).pack(anchor='w')
 
         tk.Button(self.window, text='START TESTING', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), Testing(self.title).run_start()]).pack()
         tk.Button(self.window, text='ADD NEW ROW', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), BaseModifier(self.title).run()]).pack()
@@ -457,7 +457,7 @@ class Settings:
         self.base_name = base_name
         self.base = Base('Saved bases.hdf5')
         self.spinbox_labels = ['Threshold', 'Default number of questions']
-        self.spinbox_params = [(1, 100), (1, 50)]
+        self.spinbox_params = [(1, 50), (1, 50)]
         self.radio_buttons_labels = ['Random', 'First column', 'Last column']
         self.randomize_type = self.base.file[self.base_name].attrs['randomize_type']
         self.default_test_questions_number = self.base.file[self.base_name].attrs['default_test_questions_number']
@@ -494,7 +494,7 @@ class Settings:
         for i in range(len(self.spinbox_labels)):
             frame = tk.Frame(self.window)
             tk.Label(frame, text=self.spinbox_labels[i] + ': ', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack(side=tk.LEFT)
-            tk.Spinbox(frame, from_=self.spinbox_params[i][0], to=self.spinbox_params[i][1], width=5, bd=4, font=12, textvariable=variables[i]).pack(side=tk.LEFT)
+            tk.Spinbox(frame, from_=self.spinbox_params[i][0], to=self.spinbox_params[i][1], width=5, bd=4, font=12, textvariable=variables[i], state="readonly").pack(side=tk.LEFT)
             tk.Label(frame, text='\n', font=12).pack()
             frame.pack(anchor='w')
 
@@ -671,7 +671,7 @@ class Testing:
 
             frame = tk.Frame(self.window)
             tk.Label(frame, text='Number of questions: ', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack(side=tk.LEFT)
-            tk.Spinbox(frame, from_=1, to=self.possible_number_of_questions, width=5, bd=4, font=12, textvariable=value).pack(side=tk.LEFT)
+            tk.Spinbox(frame, from_=1, to=self.possible_number_of_questions, width=5, bd=4, font=12, textvariable=value, state="readonly").pack(side=tk.LEFT)
             tk.Label(frame, text='\n', font=12).pack()
             frame.pack(anchor='w')
 
@@ -734,7 +734,6 @@ class Testing:
         values = make_variables()
 
         sf = ScrolledFrame(self.window, width=self.calculate_window_width(), height=400)
-        sf.bind_arrow_keys(self.window)
         sf.bind_scroll_wheel(self.window)
         sf.pack()
         inner_frame = sf.display_widget(tk.Frame)
@@ -797,7 +796,6 @@ class Testing:
         tk.Label(self.window, text='\n', font=12).pack()
 
         sf = ScrolledFrame(self.window, width=self.calculate_window_width(), height=400)
-        sf.bind_arrow_keys(self.window)
         sf.bind_scroll_wheel(self.window)
         sf.pack()
         inner_frame = sf.display_widget(tk.Frame)
