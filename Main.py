@@ -5,6 +5,7 @@ from tkscrolledframe import ScrolledFrame
 from functools import partial
 import random
 import os
+import string as st
 
 
 # Main screen
@@ -60,7 +61,7 @@ class MainWindow:
         m_box = messagebox.showwarning('Confirmation', 'The selected base will be irretrievably deleted.\nAre you sure you want to continue?', type='yesno')
         if m_box == 'yes':
             self.bases.remove_base(base_name)
-            messagebox.showinfo('Info', 'Base ' + base_name + ' has been deleted.')
+            messagebox.showinfo('Info', f'Base {base_name} has been deleted.')
             self.create_new_window()
             self.run()
 
@@ -148,8 +149,8 @@ class BaseCreator:
 
         for i in range(len(self.spinbox_labels)):
             frame = tk.Frame(self.window)
-            tk.Label(frame, text=self.spinbox_labels[i] + ': ', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack(side=tk.LEFT)
-            tk.Spinbox(frame, from_=self.spinbox_params[i][0], to=self.spinbox_params[i][1], width=5, bd=4, font=12, textvariable=variables[i + 1], state="readonly").pack(side=tk.LEFT)
+            tk.Label(frame, text=f'{self.spinbox_labels[i]}: ', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack(side=tk.LEFT)
+            tk.Spinbox(frame, from_=self.spinbox_params[i][0], to=self.spinbox_params[i][1], width=5, bd=4, font=12, textvariable=variables[i + 1], state="readonly", readonlybackground='white').pack(side=tk.LEFT)
             tk.Label(frame, text='\n', font=12).pack()
             frame.pack(anchor='w')
 
@@ -171,7 +172,7 @@ class BaseCreator:
         converted_values = prepare_variables(variables)
         if converted_values[0] == '':
             messagebox.showerror('Error', 'The name field is blank!')
-        elif is_string_consist_only_spaces(converted_values[0]):
+        elif is_string_composed_of_whitespace(converted_values[0]):
             messagebox.showerror('Error', 'The name field consists solely of spaces!')
         elif converted_values[0] in self.base.get_bases_names():
             messagebox.showerror('Error', 'The name you entered already exists!')
@@ -214,7 +215,7 @@ class BaseCreator:
                 input_correct = False
                 messagebox.showerror('Error', 'One of the fields is blank!')
                 break
-            elif is_string_consist_only_spaces(column_names[i]):
+            elif is_string_composed_of_whitespace(column_names[i]):
                 input_correct = False
                 messagebox.showerror('Error', 'One of the fields consists solely of spaces!')
                 break
@@ -225,7 +226,7 @@ class BaseCreator:
         if input_correct:
             self.columns_names = column_names
             self.base.add_new_data_set(self.base_title, self.columns_names, self.threshold, self.default_test_questions_number, self.randomize_type)
-            messagebox.showinfo('Info', 'Base ' + self.base_title + ' has been created.')
+            messagebox.showinfo('Info', f'Base {self.base_title} has been created.')
             self.base.file.close()
             self.window.destroy()
             MainWindow().run()
@@ -269,7 +270,7 @@ class BaseCreator:
             self.base.add_new_data_set(imported_base_name, columns_names, threshold, default_test_questions_number, randomize_type)
             self.base.fill_base_with_values(imported_base_name, data)
             self.base.reset_progress(imported_base_name)
-            messagebox.showinfo('Info', 'Base ' + imported_base_name + ' has been imported.')
+            messagebox.showinfo('Info', f'Base {imported_base_name} has been imported.')
 
 
 # Main screen -> Selected base
@@ -353,7 +354,7 @@ class BaseModifier:
     def __init__(self, title, index=None):
         self.window = tk.Tk()
         self.title = title
-        self.window_title = self.title + '-' + 'Editor'
+        self.window_title = f'{self.title} - Editor'
         self.window.title(self.window_title)
         self.base = Base('Saved bases.hdf5')
         self.index = index
@@ -425,7 +426,7 @@ class BaseModifier:
                 input_correct = False
                 messagebox.showerror('Error', 'One of the fields is blank!')
                 break
-            elif is_string_consist_only_spaces(fields[i]):
+            elif is_string_composed_of_whitespace(fields[i]):
                 input_correct = False
                 messagebox.showerror('Error', 'One of the fields consists solely of spaces!')
                 break
@@ -494,7 +495,7 @@ class Settings:
         for i in range(len(self.spinbox_labels)):
             frame = tk.Frame(self.window)
             tk.Label(frame, text=self.spinbox_labels[i] + ': ', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack(side=tk.LEFT)
-            tk.Spinbox(frame, from_=self.spinbox_params[i][0], to=self.spinbox_params[i][1], width=5, bd=4, font=12, textvariable=variables[i], state="readonly").pack(side=tk.LEFT)
+            tk.Spinbox(frame, from_=self.spinbox_params[i][0], to=self.spinbox_params[i][1], width=5, bd=4, font=12, textvariable=variables[i], state="readonly", readonlybackground='white').pack(side=tk.LEFT)
             tk.Label(frame, text='\n', font=12).pack()
             frame.pack(anchor='w')
 
@@ -568,7 +569,7 @@ class Settings:
                 input_correct = False
                 messagebox.showerror('Error', 'One of the fields is blank')
                 break
-            elif is_string_consist_only_spaces(column_names[i]):
+            elif is_string_composed_of_whitespace(column_names[i]):
                 input_correct = False
                 messagebox.showerror('Error', 'One of the fields consists solely of spaces!')
                 break
@@ -607,7 +608,7 @@ class Settings:
         base_name = new_base_name.get()
         if base_name == '':
             messagebox.showerror('Error', 'The name field is blank!')
-        elif is_string_consist_only_spaces(base_name):
+        elif is_string_composed_of_whitespace(base_name):
             messagebox.showerror('Error', 'The name field consists solely of spaces!')
         elif base_name in self.base.get_bases_names():
             messagebox.showerror('Error', 'The name you entered already exists!')
@@ -671,7 +672,7 @@ class Testing:
 
             frame = tk.Frame(self.window)
             tk.Label(frame, text='Number of questions: ', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack(side=tk.LEFT)
-            tk.Spinbox(frame, from_=1, to=self.possible_number_of_questions, width=5, bd=4, font=12, textvariable=value, state="readonly").pack(side=tk.LEFT)
+            tk.Spinbox(frame, from_=1, to=self.possible_number_of_questions, width=5, bd=4, font=12, textvariable=value, state="readonly", readonlybackground='white').pack(side=tk.LEFT)
             tk.Label(frame, text='\n', font=12).pack()
             frame.pack(anchor='w')
 
@@ -728,13 +729,14 @@ class Testing:
 
             return variables
 
-        tk.Label(self.window, text=self.base_name + ' - ' + 'Test', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack()
+        tk.Label(self.window, text=f'{self.base_name} - Test', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack()
         tk.Label(self.window, text='\n', font=12).pack()
 
         values = make_variables()
 
         sf = ScrolledFrame(self.window, width=self.calculate_window_width(), height=400)
         sf.bind_scroll_wheel(self.window)
+        sf.bind_arrow_keys(self.window)
         sf.pack()
         inner_frame = sf.display_widget(tk.Frame)
 
@@ -759,40 +761,43 @@ class Testing:
             frame.pack()
 
         tk.Label(self.window, text='', font=12).pack()
-        tk.Button(self.window, text='CHECK', font=12, bd=4, command=lambda: [self.check_input_correctness(values)]).pack()
+        tk.Button(self.window, text='CHECK', font=12, bd=4, command=lambda: [self.accept_user_input(values)]).pack()
         tk.Label(self.window, text='', font=12).pack()
         tk.Button(self.window, text='ABORT', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), BaseExplorer(self.base_name).run()]).pack()
 
         window_config(self.window)
         tk.mainloop()
 
-    def check_input_correctness(self, user_input):
-        values = []
-        for row in user_input:
-            values.append(prepare_variables(row))
+    def accept_user_input(self, user_input):
+        def prepare_values(user_input):
+            return [prepare_variables(row) for row in user_input]
 
-        input_correct = True
-        for i in range(len(values)):
-            for j in range(len(values[i])):
-                if values[i][j] == '':
-                    input_correct = False
-                    messagebox.showerror('Error', 'One of the fields is blank!')
-                    break
-                elif is_string_consist_only_spaces(values[i][j]):
-                    input_correct = False
-                    messagebox.showerror('Error', 'One of the fields consists solely of spaces!')
+        def check_user_input(values):
+            all_fields_are_filled = True
+            for i in range(len(values)):
+                for j in range(len(values[i])):
+                    if values[i][j] == '' or is_string_composed_of_whitespace(values[i][j]):
+                        all_fields_are_filled = False
+                        break
+
+                if not all_fields_are_filled:
                     break
 
-            if not input_correct:
-                break
+            return all_fields_are_filled
 
-        if input_correct:
+        values = prepare_values(user_input)
+        input_flag = check_user_input(values)
+
+        if not input_flag:
+            m_box = messagebox.showwarning('Warning', 'Some fields are not filled. Are you sure you want to continue?', type='yesno')
+
+        if input_flag or m_box == 'yes':
             self.create_new_window()
             self.run_result(self.base.test_check_all_rows_correctness(self.base_name, self.generated_row_indexes, values))
 
     def run_result(self, user_input_and_results):
         user_input, errors_matrix = user_input_and_results
-        tk.Label(self.window, text=self.base_name + ' - ' + 'Result', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack()
+        tk.Label(self.window, text=f'{self.base_name} - Result', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack()
         tk.Label(self.window, text='\n', font=12).pack()
 
         sf = ScrolledFrame(self.window, width=self.calculate_window_width(), height=400)
@@ -840,25 +845,15 @@ class Testing:
 
     @staticmethod
     def prepare_string_for_result_messagebox(questions, good_answers, good_rows, total_rows):
-        return 'Correct answers: ' + str(good_answers) + ' / ' + str(questions) + ' (' + str(round(100 * good_answers / questions, 2)) + '%)' + '\nCorrect rows: ' + str(good_rows) + ' / ' + str(total_rows) + ' (' + str(round(100 * good_rows / total_rows, 2)) + '%)'
+        return f'Correct answers: {good_answers} / {questions} ({round(100 * good_answers / questions, 2)}%\nCorrect rows: {good_rows} / {total_rows} ({round(100 * good_rows / total_rows, 2)}%)'
 
 
 def prepare_variables(variables_list):
-    values = []
-    for j in range(len(variables_list)):
-        values.append(variables_list[j].get())
-
-    return values
+    return [variable.get() for variable in variables_list]
 
 
-def is_string_consist_only_spaces(string):
-    result = True
-    for char in string:
-        if char != ' ':
-            result = False
-            break
-
-    return result
+def is_string_composed_of_whitespace(string):
+    return all([char in st.whitespace for char in string])
 
 
 def window_config(window, width_adjuster=0.85, height_adjuster=0.55):
