@@ -25,6 +25,12 @@ class BasicWindow:
         self.window = tk.Tk()
         self.window.title(self.window_title)
 
+    def calculate_window_width(self, mod=0):
+        width = int(mod + 274 * (len(self.base_handle.get_base_columns_name(self.base_name)) - 1))
+        if width > self.window.winfo_screenwidth():
+            width = self.window.winfo_screenwidth()
+        return width
+
     @staticmethod
     def get_settings_spinbox_labels():
         return ['Number of columns', 'Threshold', 'Default number of questions']
@@ -241,8 +247,8 @@ class BaseCreator(BasicWindow):
         if input_correct:
             self.columns_names = column_names
             self.base_handle.add_new_data_set(self.base_title, self.columns_names, self.threshold, self.default_test_questions_number, self.randomize_type)
-            messagebox.showinfo('Info', f'Base {self.base_title} has been created.')
             self.base_handle.file.close()
+            messagebox.showinfo('Info', f'Base {self.base_title} has been created.')
             self.window.destroy()
             MainWindow().run()
 
@@ -259,18 +265,18 @@ class BaseCreator(BasicWindow):
         sf.pack()
         inner_frame = sf.display_widget(tk.Frame)
 
-        bases = imported_base.get_bases_names()
-        for i in range(len(bases)):
+        base_names = imported_base.get_bases_names()
+        for i in range(len(base_names)):
             frame = tk.Frame(inner_frame)
             l_box = tk.Listbox(frame, width=40, height=1, justify=tk.CENTER, font=font.Font(family='Helvetica', size=12, weight='normal'))
-            l_box.insert(0, bases[i])
+            l_box.insert(0, base_names[i])
             l_box.pack(side=tk.LEFT)
-            tk.Button(frame, text='IMPORT', bd=4, font=12, command=lambda c=i: [self.import_button_command(partial(button_base_name, bases[c]).args[0], imported_base)]).pack(side=tk.LEFT)
+            tk.Button(frame, text='IMPORT', bd=4, font=12, command=lambda c=i: [self.import_button_command(partial(button_base_name, base_names[c]).args[0], imported_base)]).pack(side=tk.LEFT)
             frame.pack()
 
         inner_frame.pack()
 
-        tk.Button(self.window, text='BACK', bd=4, font=12, command=lambda: [imported_base.file.close(), self.create_new_window(), self.run()]).pack()
+        tk.Button(self.window, text='BACK', bd=4, font=12, command=lambda: [imported_base.file.close(), self.base_handle.file.close(), self.window.destroy(), MainWindow().run()]).pack()
 
         window_config(self.window)
         tk.mainloop()
@@ -281,7 +287,7 @@ class BaseCreator(BasicWindow):
         else:
             columns_names = imported_base.get_base_columns_name(imported_base_name)[: -1]
             threshold, default_test_questions_number, randomize_type = imported_base.get_metadata(imported_base_name)
-            data = imported_base.file[imported_base_name]
+            data = imported_base.get_decoded_values_from_all_rows(imported_base_name)
             self.base_handle.add_new_data_set(imported_base_name, columns_names, threshold, default_test_questions_number, randomize_type)
             self.base_handle.fill_base_with_values(imported_base_name, data)
             self.base_handle.reset_progress(imported_base_name)
@@ -305,12 +311,6 @@ class BaseExplorer(BasicWindow):
             l_box.pack(side=tk.LEFT)
         frame.pack(fill=tk.X)
 
-    def calculate_window_width(self):
-        width = int(305 + 274 * (len(self.base_handle.get_base_columns_name(self.base_name)) - 1))
-        if width > self.window.winfo_screenwidth():
-            width = self.window.winfo_screenwidth()
-        return width
-
     def run(self):
         def get_button_index(index):
             return index
@@ -318,7 +318,7 @@ class BaseExplorer(BasicWindow):
         tk.Label(self.window, text=self.base_name, bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack()
         tk.Label(self.window, text='', font=12).pack()
 
-        sf = ScrolledFrame(self.window, width=self.calculate_window_width(), height=335)
+        sf = ScrolledFrame(self.window, width=self.calculate_window_width(mod=305), height=335)
         sf.bind_scroll_wheel(self.window)
         sf.pack()
         inner_frame = sf.display_widget(tk.Frame)
@@ -471,10 +471,7 @@ class Settings(BasicWindow):
 
     def run(self):
         def prepare_values(values):
-            for j in range(len(values)):
-                values[j] = values[j].get()
-
-            return values
+            return [value.get() for value in values]
 
         variables = self.prepare_variables()
 
@@ -672,12 +669,6 @@ class Testing(BasicWindow):
             l_box.insert(0, columns_names[i])
             l_box.pack(side=tk.LEFT)
         frame.pack()
-
-    def calculate_window_width(self):
-        width = int(274 * (len(self.base_handle.get_base_columns_name(self.base_name)) - 1))
-        if width > self.window.winfo_screenwidth():
-            width = self.window.winfo_screenwidth()
-        return width
 
     def set_generated_variables(self, number_of_questions):
         self.number_of_questions = number_of_questions
