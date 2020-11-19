@@ -8,18 +8,40 @@ import os
 import string as st
 
 
-# Main screen
-class MainWindow:
-    def __init__(self):
+class BasicWindow:
+    def __init__(self, window_title, base_name=None):
         self.window = tk.Tk()
-        self.window_title = 'Auto Tester'
+        self.window_title = window_title
         self.window.title(self.window_title)
-        self.bases = Base('Saved bases.hdf5')
+        self.base_handle = Base('Saved bases.hdf5')
+        self.base_name = base_name
+        if self.base_name is not None:
+            self.base_values = self.base_handle.get_decoded_values_from_all_rows(self.base_name)
+        else:
+            self.base_values = None
 
     def create_new_window(self):
         self.window.destroy()
         self.window = tk.Tk()
         self.window.title(self.window_title)
+
+    @staticmethod
+    def get_settings_spinbox_labels():
+        return ['Number of columns', 'Threshold', 'Default number of questions']
+
+    @staticmethod
+    def get_settings_spinbox_ranges():
+        return [(2, 8), (1, 50), (1, 50)]
+
+    @staticmethod
+    def get_settings_radio_buttons_labels():
+        return ['Random', 'First column', 'Last column']
+
+
+# Main screen
+class MainWindow(BasicWindow):
+    def __init__(self):
+        super().__init__('Auto Tester')
 
     def run(self):
         def button_base_name(base_name):
@@ -33,60 +55,53 @@ class MainWindow:
         sf.pack()
         inner_frame = sf.display_widget(tk.Frame)
 
-        bases = self.bases.get_bases_names()
-        for i in range(len(bases)):
+        base_names = self.base_handle.get_bases_names()
+        for i in range(len(base_names)):
             frame = tk.Frame(inner_frame)
             l_box = tk.Listbox(frame, width=40, height=1, justify=tk.CENTER, font=font.Font(family='Helvetica', size=12, weight='normal'))
-            l_box.insert(0, bases[i])
+            l_box.insert(0, base_names[i])
             l_box.pack(side=tk.LEFT)
-            tk.Button(frame, text='SELECT', bd=4, font=12, command=lambda c=i: [self.proceed_button_command(partial(button_base_name, self.bases.get_bases_names()[c]).args[0])]).pack(side=tk.LEFT)
-            tk.Button(frame, text='DELETE', bd=4, font=12, command=lambda c=i: [self.confirm_base_removal(partial(button_base_name, self.bases.get_bases_names()[c]).args[0])]).pack(side=tk.LEFT)
+            tk.Button(frame, text='SELECT', bd=4, font=12, command=lambda c=i: [self.proceed_button_command(partial(button_base_name, self.base_handle.get_bases_names()[c]).args[0])]).pack(side=tk.LEFT)
+            tk.Button(frame, text='DELETE', bd=4, font=12, command=lambda c=i: [self.confirm_base_removal(partial(button_base_name, self.base_handle.get_bases_names()[c]).args[0])]).pack(side=tk.LEFT)
             frame.pack()
 
         inner_frame.pack()
 
-        tk.Button(self.window, text='ADD NEW BASE', bd=4, font=12, command=lambda: [self.bases.file.close(), self.window.destroy(), BaseCreator().run()]).pack()
+        tk.Button(self.window, text='ADD NEW BASE', bd=4, font=12, command=lambda: [self.base_handle.file.close(), self.window.destroy(), BaseCreator().run()]).pack()
         tk.Label(self.window, text='', font=12).pack()
-        tk.Button(self.window, text='EXIT', bd=4, font=12, command=lambda: [self.bases.file.close(), self.window.destroy()]).pack()
+        tk.Button(self.window, text='EXIT', bd=4, font=12, command=lambda: [self.base_handle.file.close(), self.window.destroy()]).pack()
 
         window_config(self.window)
         tk.mainloop()
 
     def proceed_button_command(self, base_name):
-        self.bases.file.close()
+        self.base_handle.file.close()
         self.window.destroy()
         BaseExplorer(base_name).run()
 
     def confirm_base_removal(self, base_name):
         m_box = messagebox.showwarning('Confirmation', 'The selected base will be irretrievably deleted.\nAre you sure you want to continue?', type='yesno')
         if m_box == 'yes':
-            self.bases.remove_base(base_name)
+            self.base_handle.remove_base(base_name)
+            self.base_handle.file.close()
             messagebox.showinfo('Info', f'Base {base_name} has been deleted.')
-            self.create_new_window()
-            self.run()
+            self.window.destroy()
+            MainWindow().run()
 
 
 # Main screen -> Adding new base
-class BaseCreator:
+class BaseCreator(BasicWindow):
     def __init__(self):
-        self.window = tk.Tk()
-        self.window_title = 'Creator'
-        self.window.title(self.window_title)
+        super().__init__('Creator')
         self.base_title = ''
         self.number_of_columns = 2
         self.randomize_type = 0
         self.default_test_questions_number = 10
         self.threshold = 5
         self.columns_names = []
-        self.spinbox_labels = ['Number of columns', 'Threshold', 'Default number of questions']
-        self.spinbox_params = [(2, 8), (1, 50), (1, 50)]
-        self.radio_buttons_labels = ['Random', 'First column', 'Last column']
-        self.base = Base('Saved bases.hdf5')
-
-    def create_new_window(self):
-        self.window.destroy()
-        self.window = tk.Tk()
-        self.window.title(self.window_title)
+        self.spinbox_labels = self.get_settings_spinbox_labels()
+        self.spinbox_ranges = self.get_settings_spinbox_ranges()
+        self.radio_buttons_labels = self.get_settings_radio_buttons_labels()
 
     def set_base_metadata(self, metadata):
         self.base_title, self.number_of_columns, self.threshold, self.default_test_questions_number, self.randomize_type = metadata
@@ -111,7 +126,7 @@ class BaseCreator:
         tk.Button(self.window, text='NEW LOCAL BASE', font=12, bd=4, command=lambda: [self.create_new_window(), self.run_local_start()]).pack()
         tk.Button(self.window, text='NEW BASE FROM FILE', font=12, bd=4, command=lambda: [self.set_path()]).pack()
         tk.Label(self.window, text='', font=12).pack()
-        tk.Button(self.window, text='BACK', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), MainWindow().run()]).pack()
+        tk.Button(self.window, text='BACK', font=12, bd=4, command=lambda: [self.base_handle.file.close(), self.window.destroy(), MainWindow().run()]).pack()
 
         window_config(self.window)
         tk.mainloop()
@@ -150,7 +165,7 @@ class BaseCreator:
         for i in range(len(self.spinbox_labels)):
             frame = tk.Frame(self.window)
             tk.Label(frame, text=f'{self.spinbox_labels[i]}: ', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack(side=tk.LEFT)
-            tk.Spinbox(frame, from_=self.spinbox_params[i][0], to=self.spinbox_params[i][1], width=5, bd=4, font=12, textvariable=variables[i + 1], state="readonly", readonlybackground='white').pack(side=tk.LEFT)
+            tk.Spinbox(frame, from_=self.spinbox_ranges[i][0], to=self.spinbox_ranges[i][1], width=5, bd=4, font=12, textvariable=variables[i + 1], state="readonly", readonlybackground='white').pack(side=tk.LEFT)
             tk.Label(frame, text='\n', font=12).pack()
             frame.pack(anchor='w')
 
@@ -163,7 +178,7 @@ class BaseCreator:
         tk.Label(self.window, text='', font=12).pack()
         tk.Button(self.window, text='NEXT', font=12, bd=4, command=lambda: [self.check_base_name_correctness(variables)]).pack()
         tk.Label(self.window, text='', font=12).pack()
-        tk.Button(self.window, text='BACK', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), MainWindow().run()]).pack()
+        tk.Button(self.window, text='BACK', font=12, bd=4, command=lambda: [self.base_handle.file.close(), self.window.destroy(), MainWindow().run()]).pack()
 
         window_config(self.window)
         tk.mainloop()
@@ -174,7 +189,7 @@ class BaseCreator:
             messagebox.showerror('Error', 'The name field is blank!')
         elif is_string_composed_of_whitespace(converted_values[0]):
             messagebox.showerror('Error', 'The name field consists solely of spaces!')
-        elif converted_values[0] in self.base.get_bases_names():
+        elif converted_values[0] in self.base_handle.get_bases_names():
             messagebox.showerror('Error', 'The name you entered already exists!')
         else:
             self.set_base_metadata(converted_values)
@@ -225,9 +240,9 @@ class BaseCreator:
                 break
         if input_correct:
             self.columns_names = column_names
-            self.base.add_new_data_set(self.base_title, self.columns_names, self.threshold, self.default_test_questions_number, self.randomize_type)
+            self.base_handle.add_new_data_set(self.base_title, self.columns_names, self.threshold, self.default_test_questions_number, self.randomize_type)
             messagebox.showinfo('Info', f'Base {self.base_title} has been created.')
-            self.base.file.close()
+            self.base_handle.file.close()
             self.window.destroy()
             MainWindow().run()
 
@@ -261,33 +276,26 @@ class BaseCreator:
         tk.mainloop()
 
     def import_button_command(self, imported_base_name, imported_base):
-        if imported_base_name in self.base.get_bases_names():
+        if imported_base_name in self.base_handle.get_bases_names():
             messagebox.showerror('Error', 'The name of this base already exists in your file!')
         else:
             columns_names = imported_base.get_base_columns_name(imported_base_name)[: -1]
             threshold, default_test_questions_number, randomize_type = imported_base.get_metadata(imported_base_name)
             data = imported_base.file[imported_base_name]
-            self.base.add_new_data_set(imported_base_name, columns_names, threshold, default_test_questions_number, randomize_type)
-            self.base.fill_base_with_values(imported_base_name, data)
-            self.base.reset_progress(imported_base_name)
+            self.base_handle.add_new_data_set(imported_base_name, columns_names, threshold, default_test_questions_number, randomize_type)
+            self.base_handle.fill_base_with_values(imported_base_name, data)
+            self.base_handle.reset_progress(imported_base_name)
             messagebox.showinfo('Info', f'Base {imported_base_name} has been imported.')
 
 
 # Main screen -> Selected base
-class BaseExplorer:
-    def __init__(self, title):
-        self.title = title
-        self.window = tk.Tk()
-        self.window.title(self.title)
-        self.base = Base('Saved bases.hdf5')
-
-    def create_new_window(self):
-        self.window.destroy()
-        self.window = tk.Tk()
-        self.window.title(self.title)
+class BaseExplorer(BasicWindow):
+    def __init__(self, base_name):
+        super().__init__(base_name, base_name)
+        self.threshold, self.default_test_questions_number, self.randomize_type = self.base_handle.get_metadata(self.base_name)
 
     def make_base_header(self, frame):
-        columns_names = self.base.get_base_columns_name(self.title)
+        columns_names = self.base_handle.get_base_columns_name(self.base_name)
         for i in range(len(columns_names)):
             if i < len(columns_names) - 1:
                 l_box = tk.Listbox(frame, bg=self.window['bg'], width=30, height=1, justify=tk.CENTER, font=font.Font(family='Helvetica', size=12, weight='bold'))
@@ -298,7 +306,7 @@ class BaseExplorer:
         frame.pack(fill=tk.X)
 
     def calculate_window_width(self):
-        width = int(305 + 274 * (len(self.base.get_base_columns_name(self.title)) - 1))
+        width = int(305 + 274 * (len(self.base_handle.get_base_columns_name(self.base_name)) - 1))
         if width > self.window.winfo_screenwidth():
             width = self.window.winfo_screenwidth()
         return width
@@ -307,7 +315,7 @@ class BaseExplorer:
         def get_button_index(index):
             return index
 
-        tk.Label(self.window, text=self.title, bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack()
+        tk.Label(self.window, text=self.base_name, bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack()
         tk.Label(self.window, text='', font=12).pack()
 
         sf = ScrolledFrame(self.window, width=self.calculate_window_width(), height=335)
@@ -316,27 +324,27 @@ class BaseExplorer:
         inner_frame = sf.display_widget(tk.Frame)
 
         self.make_base_header(tk.Frame(inner_frame))
-        for i in range(len(self.base.file[self.title])):
+        for i in range(len(self.base_values)):
             frame = tk.Frame(inner_frame)
-            for j in range(len(self.base.file[self.title][i])):
-                if j < len(self.base.file[self.title][i]) - 1:
+            for j in range(len(self.base_values[i])):
+                if j < len(self.base_values[i]) - 1:
                     l_box = tk.Listbox(frame, width=30, height=1, justify=tk.CENTER, font=font.Font(family='Helvetica', size=12, weight='normal'))
-                    l_box.insert(0, self.base.file[self.title][i][j])
+                    l_box.insert(0, self.base_values[i][j])
                 else:
                     l_box = tk.Listbox(frame, width=18, height=1, justify=tk.CENTER, font=font.Font(family='Helvetica', size=12, weight='normal'))
-                    l_box.insert(0, f"{self.base.file[self.title][i][j]}/{self.base.file[self.title].attrs['threshold']}")
+                    l_box.insert(0, f"{self.base_values[i][j]}/{self.threshold}")
                 l_box.pack(side=tk.LEFT)
-            tk.Button(frame, text='EDIT', font=10, bd=4, command=lambda c=i: [self.base.file.close(), self.window.destroy(), BaseModifier(self.title, partial(get_button_index, c).args[0]).run()]).pack(side=tk.LEFT)
+            tk.Button(frame, text='EDIT', font=10, bd=4, command=lambda c=i: [self.base_handle.file.close(), self.window.destroy(), BaseModifier(self.base_name, partial(get_button_index, c).args[0]).run()]).pack(side=tk.LEFT)
             tk.Button(frame, text='DELETE', font=10, bd=4, command=lambda c=i: [self.confirm_row_remove(partial(get_button_index, c).args[0])]).pack(side=tk.LEFT)
             frame.pack()
 
-        tk.Label(self.window, text=f"Rows: {len(self.base.file[self.title])}", bd=4, font=font.Font(family='Helvetica', size=12, weight='normal')).pack(anchor='w')
+        tk.Label(self.window, text=f"Rows: {len(self.base_values)}", bd=4, font=font.Font(family='Helvetica', size=12, weight='normal')).pack(anchor='w')
 
-        tk.Button(self.window, text='START TESTING', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), Testing(self.title).run_start()]).pack()
-        tk.Button(self.window, text='ADD NEW ROW', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), BaseModifier(self.title).run()]).pack()
-        tk.Button(self.window, text='SETTINGS', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), Settings(self.title).run()]).pack()
+        tk.Button(self.window, text='START TESTING', font=12, bd=4, command=lambda: [self.base_handle.file.close(), self.window.destroy(), Testing(self.base_name).run_start()]).pack()
+        tk.Button(self.window, text='ADD NEW ROW', font=12, bd=4, command=lambda: [self.base_handle.file.close(), self.window.destroy(), BaseModifier(self.base_name).run()]).pack()
+        tk.Button(self.window, text='SETTINGS', font=12, bd=4, command=lambda: [self.base_handle.file.close(), self.window.destroy(), Settings(self.base_name).run()]).pack()
         tk.Label(self.window, text='', font=12).pack()
-        tk.Button(self.window, text='BACK', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), MainWindow().run()]).pack()
+        tk.Button(self.window, text='BACK', font=12, bd=4, command=lambda: [self.base_handle.file.close(), self.window.destroy(), MainWindow().run()]).pack()
 
         window_config(self.window)
         tk.mainloop()
@@ -344,28 +352,20 @@ class BaseExplorer:
     def confirm_row_remove(self, index):
         m_box = messagebox.showwarning('Confirmation', 'The selected row will be removed from this base.\nAre you sure you want to continue?', type='yesno')
         if m_box == 'yes':
-            self.base.remove_row(self.title, index)
-            self.create_new_window()
-            self.run()
+            self.base_handle.remove_row(self.base_name, index)
+            self.base_handle.file.close()
+            self.window.destroy()
+            BaseExplorer(self.base_name).run()
 
 
 # Main screen -> Selected base -> New row / Edit row
-class BaseModifier:
-    def __init__(self, title, index=None):
-        self.window = tk.Tk()
-        self.title = title
-        self.window_title = f'{self.title} - Editor'
-        self.window.title(self.window_title)
-        self.base = Base('Saved bases.hdf5')
+class BaseModifier(BasicWindow):
+    def __init__(self, base_name, index=None):
+        super().__init__(f'{base_name} - Editor', base_name)
         self.index = index
 
-    def create_new_window(self):
-        self.window.destroy()
-        self.window = tk.Tk()
-        self.window.title(self.window_title)
-
     def make_base_header(self, frame):
-        columns_names = self.base.get_base_columns_name(self.title)
+        columns_names = self.base_handle.get_base_columns_name(self.base_name)
         for i in range(len(columns_names) - 1):
             l_box = tk.Listbox(frame, bg=self.window['bg'], width=30, height=1, justify=tk.CENTER, font=font.Font(family='Helvetica', size=12, weight='bold'))
             l_box.insert(0, columns_names[i])
@@ -381,7 +381,7 @@ class BaseModifier:
         tk.Label(self.window, text=label_text, bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack()
         tk.Label(self.window, text='', font=12).pack()
 
-        columns_names = self.base.get_base_columns_name(self.title)
+        columns_names = self.base_handle.get_base_columns_name(self.base_name)
         values = []
         for _ in range(len(columns_names) - 1):
             values.append(tk.StringVar())
@@ -389,8 +389,8 @@ class BaseModifier:
 
         if self.index is not None:
             for i in range(len(columns_names) - 1):
-                values[i].set(self.base.file[self.title][self.index][i])
-            values[-1].set(self.base.file[self.title][self.index][-1])
+                values[i].set(self.base_values[self.index][i])
+            values[-1].set(self.base_values[self.index][-1])
 
         self.make_base_header(tk.Frame(self.window))
 
@@ -412,7 +412,7 @@ class BaseModifier:
             button = tk.Button(self.window, text='EDIT', bd=4, font=12, command=lambda: [self.check_input_correctness(values, index=self.index)])
             button.pack()
         tk.Label(self.window, text='', font=12).pack()
-        tk.Button(self.window, text='BACK', bd=4, font=12, command=lambda: [self.base.file.close(), self.window.destroy(), BaseExplorer(self.title).run()]).pack()
+        tk.Button(self.window, text='BACK', bd=4, font=12, command=lambda: [self.base_handle.file.close(), self.window.destroy(), BaseExplorer(self.base_name).run()]).pack()
 
         self.window.bind('<Return>', lambda event=None: button.invoke())
         window_config(self.window)
@@ -430,44 +430,33 @@ class BaseModifier:
                 input_correct = False
                 messagebox.showerror('Error', 'One of the fields consists solely of spaces!')
                 break
-            elif self.base.is_that_tuple_in_base(self.title, tuple(fields[:-1]), ignore_row_index=index):
+            elif self.base_handle.is_that_tuple_in_base(self.base_name, tuple(fields[:-1]), ignore_row_index=index):
                 input_correct = False
                 messagebox.showerror('Error', 'The exact same row already exists in the base!')
                 break
 
         if input_correct:
             if index is None:
-                self.base.add_new_row(self.title, fields)
+                self.base_handle.add_new_row(self.base_name, fields)
                 messagebox.showinfo('Info', 'New row has been added.')
                 self.create_new_window()
                 self.run()
             else:
-                self.base.modify_row(self.title, fields, self.index)
+                self.base_handle.modify_row(self.base_name, fields, self.index)
                 messagebox.showinfo('Info', 'The row has been edited.')
-                self.base.file.close()
+                self.base_handle.file.close()
                 self.window.destroy()
-                BaseExplorer(self.title).run()
+                BaseExplorer(self.base_name).run()
 
 
 # Main screen -> Selected base -> Settings
-class Settings:
+class Settings(BasicWindow):
     def __init__(self, base_name):
-        self.window = tk.Tk()
-        self.window_title = 'Settings'
-        self.window.title(self.window_title)
-        self.base_name = base_name
-        self.base = Base('Saved bases.hdf5')
-        self.spinbox_labels = ['Threshold', 'Default number of questions']
-        self.spinbox_params = [(1, 50), (1, 50)]
-        self.radio_buttons_labels = ['Random', 'First column', 'Last column']
-        self.randomize_type = self.base.file[self.base_name].attrs['randomize_type']
-        self.default_test_questions_number = self.base.file[self.base_name].attrs['default_test_questions_number']
-        self.threshold = self.base.file[self.base_name].attrs['threshold']
-
-    def create_new_window(self):
-        self.window.destroy()
-        self.window = tk.Tk()
-        self.window.title(self.window_title)
+        super().__init__('Settings', base_name)
+        self.spinbox_labels = self.get_settings_spinbox_labels()[1:]
+        self.spinbox_ranges = self.get_settings_spinbox_ranges()[1:]
+        self.radio_buttons_labels = self.get_settings_radio_buttons_labels()
+        self.threshold, self.default_test_questions_number, self.randomize_type = self.base_handle.get_metadata(self.base_name)
 
     def prepare_variables(self):
         variables = []
@@ -495,7 +484,7 @@ class Settings:
         for i in range(len(self.spinbox_labels)):
             frame = tk.Frame(self.window)
             tk.Label(frame, text=self.spinbox_labels[i] + ': ', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack(side=tk.LEFT)
-            tk.Spinbox(frame, from_=self.spinbox_params[i][0], to=self.spinbox_params[i][1], width=5, bd=4, font=12, textvariable=variables[i], state="readonly", readonlybackground='white').pack(side=tk.LEFT)
+            tk.Spinbox(frame, from_=self.spinbox_ranges[i][0], to=self.spinbox_ranges[i][1], width=5, bd=4, font=12, textvariable=variables[i], state="readonly", readonlybackground='white').pack(side=tk.LEFT)
             tk.Label(frame, text='\n', font=12).pack()
             frame.pack(anchor='w')
 
@@ -506,12 +495,12 @@ class Settings:
         frame.pack(anchor='w')
 
         tk.Label(self.window, text='', font=12).pack()
-        tk.Button(self.window, text='CONFIRM', font=12, bd=4, command=lambda: [self.base.set_base_metadata(self.base_name, prepare_values(variables)), messagebox.showinfo("Info", 'The settings have been changed.')]).pack()
+        tk.Button(self.window, text='CONFIRM', font=12, bd=4, command=lambda: [self.base_handle.set_base_metadata(self.base_name, prepare_values(variables)), messagebox.showinfo("Info", 'The settings have been changed.')]).pack()
         tk.Label(self.window, text='', font=12).pack()
         tk.Button(self.window, text='EDIT NAMES', bd=4, font=12, command=lambda: [self.create_new_window(), self.run_edit()]).pack()
         tk.Button(self.window, text='RESET PROGRESS', font=12, bd=4, command=lambda: [self.confirm_reset_progress()]).pack()
         tk.Label(self.window, text='', font=12).pack()
-        tk.Button(self.window, text='BACK', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), BaseExplorer(self.base_name).run()]).pack()
+        tk.Button(self.window, text='BACK', font=12, bd=4, command=lambda: [self.base_handle.file.close(), self.window.destroy(), BaseExplorer(self.base_name).run()]).pack()
 
         window_config(self.window)
         tk.mainloop()
@@ -519,7 +508,7 @@ class Settings:
     def confirm_reset_progress(self):
         m_box = messagebox.showwarning('Confirmation', 'The learning progress of all entries in this base will be reset to zero.\nAre you sure you want to continue?', type='yesno')
         if m_box == 'yes':
-            self.base.reset_progress(self.base_name)
+            self.base_handle.reset_progress(self.base_name)
             messagebox.showinfo('Info', 'The learning progress has been reset.')
 
     def run_edit(self):
@@ -536,7 +525,7 @@ class Settings:
 
     def run_edit_columns_names(self):
         variables = []
-        columns_names = self.base.get_base_columns_name(self.base_name)[: -1]
+        columns_names = self.base_handle.get_base_columns_name(self.base_name)[: -1]
         for i in range(len(columns_names)):
             variables.append(tk.StringVar())
             variables[i].set(columns_names[i])
@@ -578,7 +567,7 @@ class Settings:
                 messagebox.showerror('Error', 'The column names must be unique!')
                 break
         if input_correct:
-            self.base.change_base_columns_names(self.base_name, column_names)
+            self.base_handle.change_base_columns_names(self.base_name, column_names)
             messagebox.showinfo('Info', 'The column names have been changed.')
             self.create_new_window()
             self.run_edit()
@@ -610,10 +599,10 @@ class Settings:
             messagebox.showerror('Error', 'The name field is blank!')
         elif is_string_composed_of_whitespace(base_name):
             messagebox.showerror('Error', 'The name field consists solely of spaces!')
-        elif base_name in self.base.get_bases_names():
+        elif base_name in self.base_handle.get_bases_names():
             messagebox.showerror('Error', 'The name you entered already exists!')
         else:
-            self.base.change_base_name(self.base_name, base_name)
+            self.base_handle.change_base_name(self.base_name, base_name)
             self.base_name = base_name
             messagebox.showinfo('Info', 'The name of the database has been changed.')
             self.create_new_window()
@@ -621,16 +610,10 @@ class Settings:
 
 
 # Main screen -> Selected base -> Start test
-class Testing:
+class Testing(BasicWindow):
     def __init__(self, base_name):
-        self.window = tk.Tk()
-        self.window_title = 'Tester'
-        self.window.title(self.window_title)
-        self.base_name = base_name
-        self.base = Base('Saved bases.hdf5')
-        self.randomize_type = self.base.file[self.base_name].attrs['randomize_type']
-        self.default_number_of_questions = self.base.file[self.base_name].attrs['default_test_questions_number']
-        self.threshold = self.base.file[self.base_name].attrs['threshold']
+        super().__init__('Tester', base_name)
+        self.threshold, self.default_number_of_questions, self.randomize_type = self.base_handle.get_metadata(self.base_name)
         self.valid_row_indexes = []
         self.possible_number_of_questions, self.not_enough_questions = self.determine_number_of_questions()
         self.number_of_questions = 1
@@ -639,8 +622,8 @@ class Testing:
 
     def determine_number_of_questions(self):
         valid_rows = 0
-        for i in range(len(self.base.file[self.base_name])):
-            if self.base.file[self.base_name][i][-1] < self.threshold:
+        for i in range(len(self.base_values)):
+            if self.base_values[i][-1] < self.threshold:
                 self.valid_row_indexes.append(i)
                 valid_rows += 1
         if valid_rows < self.default_number_of_questions:
@@ -653,11 +636,6 @@ class Testing:
         if m_box == 'ok':
             self.window.destroy()
             BaseExplorer(self.base_name).run()
-
-    def create_new_window(self):
-        self.window.destroy()
-        self.window = tk.Tk()
-        self.window.title(self.window_title)
 
     def run_start(self):
         tk.Label(self.window, text='Test', bd=4, font=font.Font(family='Helvetica', size=14, weight='bold')).pack()
@@ -679,7 +657,7 @@ class Testing:
             tk.Label(self.window, text='', font=12).pack()
             tk.Button(self.window, text='START', font=12, bd=4, command=lambda: [self.set_generated_variables(value.get()), self.create_new_window(), self.run_main()]).pack()
             tk.Label(self.window, text='', font=12).pack()
-            tk.Button(self.window, text='BACK', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), BaseExplorer(self.base_name).run()]).pack()
+            tk.Button(self.window, text='BACK', font=12, bd=4, command=lambda: [self.base_handle.file.close(), self.window.destroy(), BaseExplorer(self.base_name).run()]).pack()
 
             window_config(self.window)
             tk.mainloop()
@@ -688,7 +666,7 @@ class Testing:
             self.error_message('In the base there are no valid rows in order to start the test.\nAdd new rows to the base, increase the threshold or reset your progress.')
 
     def make_base_header(self, frame):
-        columns_names = self.base.get_base_columns_name(self.base_name)
+        columns_names = self.base_handle.get_base_columns_name(self.base_name)
         for i in range(len(columns_names) - 1):
             l_box = tk.Listbox(frame, bg=self.window['bg'], width=30, height=1, justify=tk.CENTER, font=font.Font(family='Helvetica', size=12, weight='bold'))
             l_box.insert(0, columns_names[i])
@@ -696,7 +674,7 @@ class Testing:
         frame.pack()
 
     def calculate_window_width(self):
-        width = int(274 * (len(self.base.get_base_columns_name(self.base_name)) - 1))
+        width = int(274 * (len(self.base_handle.get_base_columns_name(self.base_name)) - 1))
         if width > self.window.winfo_screenwidth():
             width = self.window.winfo_screenwidth()
         return width
@@ -707,23 +685,23 @@ class Testing:
         if self.randomize_type == 0:
             self.generated_column_indexes = []
             for i in range(self.number_of_questions):
-                self.generated_column_indexes.append(random.choice(range(len(self.base.file[self.base_name].dtype) - 1)))
+                self.generated_column_indexes.append(random.choice(range(len(self.base_handle.file[self.base_name].dtype) - 1)))
         elif self.randomize_type == 1:
             self.generated_column_indexes = [0] * self.number_of_questions
         else:
-            self.generated_column_indexes = [len(self.base.file[self.base_name].dtype) - 2] * self.number_of_questions
+            self.generated_column_indexes = [len(self.base_handle.file[self.base_name].dtype) - 2] * self.number_of_questions
 
     def run_main(self):
         def make_variables():
             variables = []
             for i in range(self.number_of_questions):
                 row = []
-                for j in range(len(self.base.file[self.base_name].dtype) - 1):
+                for j in range(len(self.base_handle.file[self.base_name].dtype) - 1):
                     if j != self.generated_column_indexes[i]:
                         row.append(tk.StringVar())
                     else:
                         value = tk.StringVar()
-                        value.set(self.base.file[self.base_name][self.generated_row_indexes[i]][j])
+                        value.set(self.base_values[self.generated_row_indexes[i]][j])
                         row.append(value)
                 variables.append(row)
 
@@ -763,13 +741,13 @@ class Testing:
         tk.Label(self.window, text='', font=12).pack()
         tk.Button(self.window, text='CHECK', font=12, bd=4, command=lambda: [self.accept_user_input(values)]).pack()
         tk.Label(self.window, text='', font=12).pack()
-        tk.Button(self.window, text='ABORT', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), BaseExplorer(self.base_name).run()]).pack()
+        tk.Button(self.window, text='ABORT', font=12, bd=4, command=lambda: [self.base_handle.file.close(), self.window.destroy(), BaseExplorer(self.base_name).run()]).pack()
 
         window_config(self.window)
         tk.mainloop()
 
     def accept_user_input(self, user_input):
-        def prepare_values(user_input):
+        def prepare_values():
             return [prepare_variables(row) for row in user_input]
 
         def check_user_input(values):
@@ -785,15 +763,16 @@ class Testing:
 
             return all_fields_are_filled
 
-        values = prepare_values(user_input)
-        input_flag = check_user_input(values)
+        prepared_values = prepare_values()
+        input_flag = check_user_input(prepared_values)
+        m_box = None
 
         if not input_flag:
             m_box = messagebox.showwarning('Warning', 'Some fields are not filled. Are you sure you want to continue?', type='yesno')
 
         if input_flag or m_box == 'yes':
             self.create_new_window()
-            self.run_result(self.base.test_check_all_rows_correctness(self.base_name, self.generated_row_indexes, values))
+            self.run_result(self.base_handle.test_check_all_rows_correctness(self.base_name, self.generated_row_indexes, prepared_values))
 
     def run_result(self, user_input_and_results):
         user_input, errors_matrix = user_input_and_results
@@ -806,7 +785,7 @@ class Testing:
         inner_frame = sf.display_widget(tk.Frame)
 
         self.make_base_header(tk.Frame(inner_frame))
-        questions = self.number_of_questions * (len(self.base.file[self.base_name].dtype) - 2)
+        questions = self.number_of_questions * (len(self.base_handle.file[self.base_name].dtype) - 2)
         good_rows = self.calculate_correct_rows_amount(errors_matrix)
         good_answers = 0
 
@@ -816,7 +795,7 @@ class Testing:
                 if j != self.generated_column_indexes[i]:
                     l_box = tk.Listbox(frame, width=30, height=2, justify=tk.CENTER, font=font.Font(family='Helvetica', size=12, weight='normal'))
                     l_box.insert(0, user_input[i][j])
-                    l_box.insert(1, self.base.file[self.base_name][self.generated_row_indexes[i]][j])
+                    l_box.insert(1, self.base_values[self.generated_row_indexes[i]][j])
                     if j in errors_matrix[i]:
                         l_box.itemconfig(0, {'fg': 'red'})
                     else:
@@ -825,11 +804,11 @@ class Testing:
                     l_box.pack(side=tk.LEFT)
                 else:
                     l_box = tk.Listbox(frame, bg=self.window['bg'], width=30, height=2, justify=tk.CENTER, font=font.Font(family='Helvetica', size=12, weight='normal'))
-                    l_box.insert(0, self.base.file[self.base_name][self.generated_row_indexes[i]][j])
+                    l_box.insert(0, self.base_values[self.generated_row_indexes[i]][j])
                     l_box.pack(side=tk.LEFT)
             frame.pack()
 
-        tk.Button(self.window, text='FINISH', font=12, bd=4, command=lambda: [self.base.file.close(), self.window.destroy(), BaseExplorer(self.base_name).run()]).pack()
+        tk.Button(self.window, text='FINISH', font=12, bd=4, command=lambda: [self.base_handle.file.close(), self.window.destroy(), BaseExplorer(self.base_name).run()]).pack()
         window_config(self.window)
         messagebox.showinfo("Result", self.prepare_string_for_result_messagebox(questions, good_answers, good_rows, self.number_of_questions))
         tk.mainloop()

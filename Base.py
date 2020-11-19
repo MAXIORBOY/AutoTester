@@ -25,6 +25,15 @@ class Base:
     def remove_base(self, base_name):
         del self.file[base_name]
 
+    def get_decoded_values_from_one_row(self, base_name, index):
+        converted_values = [self.file[base_name][index][j].decode('utf-8') for j in range(len(self.file[base_name].dtype.names) - 1)]
+        converted_values.append(self.file[base_name][index][-1])
+
+        return converted_values
+
+    def get_decoded_values_from_all_rows(self, base_name):
+        return [self.get_decoded_values_from_one_row(base_name, index) for index in range(len(self.file[base_name]))]
+
     def get_bases_names(self):
         return [d_set for d_set in self.file]
 
@@ -51,14 +60,7 @@ class Base:
         self.file[base_name][index] = tuple(values)
 
     def remove_row(self, base_name, index):
-        def copy_base():
-            base_copy = []
-            for i in range(len(self.file[base_name])):
-                base_copy.append(self.file[base_name][i])
-
-            return base_copy
-
-        copy_of_base = copy_base()
+        copy_of_base = self.get_decoded_values_from_all_rows(base_name)
         counter = 0
         for j in range(len(self.file[base_name])):
             if j != index:
@@ -69,20 +71,18 @@ class Base:
 
     def reset_progress(self, base_name):
         for i in range(len(self.file[base_name])):
-            row = self.file[base_name][i]
+            row = self.get_decoded_values_from_one_row(base_name, i)
             row[-1] = 0
             self.file[base_name][i] = tuple(row)
 
     def add_progress_point(self, base_name, row_index):
-        row = self.file[base_name][row_index]
+        row = self.get_decoded_values_from_one_row(base_name, row_index)
         row[-1] += 1
         self.file[base_name][row_index] = tuple(row)
 
     def test_check_row_correctness(self, base_name, row_index, test_row):
-        column_errors_list = []
-        for i in range(len(self.file[base_name][row_index]) - 1):
-            if self.file[base_name][row_index][i] != test_row[i]:
-                column_errors_list.append(i)
+        decoded_values = self.get_decoded_values_from_one_row(base_name, row_index)
+        column_errors_list = [i for i in range(len(self.file[base_name].dtype.names) - 1) if decoded_values[i] != test_row[i]]
 
         if not len(column_errors_list):
             self.add_progress_point(base_name, row_index)
@@ -90,9 +90,7 @@ class Base:
         return column_errors_list
 
     def test_check_all_rows_correctness(self, base_name, row_indexes, test_rows):
-        all_columns_errors_matrix = []
-        for i in range(len(row_indexes)):
-            all_columns_errors_matrix.append(self.test_check_row_correctness(base_name, row_indexes[i], test_rows[i]))
+        all_columns_errors_matrix = [self.test_check_row_correctness(base_name, row_indexes[i], test_rows[i]) for i in range(len(row_indexes))]
 
         return test_rows, all_columns_errors_matrix
 
@@ -102,7 +100,7 @@ class Base:
             if i == ignore_row_index:
                 continue
 
-            if tuple(self.file[base_name][i])[:-1] == entry:
+            if tuple(self.get_decoded_values_from_one_row(base_name, i))[:-1] == entry:
                 result = True
                 break
 
@@ -113,7 +111,7 @@ class Base:
             self.add_new_row(base_name, row)
 
     def change_base_columns_names(self, base_name, new_columns_names):
-        data = self.file[base_name]
+        data = self.get_decoded_values_from_all_rows(base_name)
         metadata = self.get_metadata(base_name)
         self.remove_base(base_name)
         self.add_new_data_set(base_name, new_columns_names, metadata[0], metadata[1], metadata[2])
@@ -122,7 +120,7 @@ class Base:
     def change_base_name(self, old_base_name, new_base_name):
         columns_names = self.get_base_columns_name(old_base_name)[: -1]
         metadata = self.get_metadata(old_base_name)
-        data = self.file[old_base_name]
+        data = self.get_decoded_values_from_all_rows(old_base_name)
         self.remove_base(old_base_name)
         self.add_new_data_set(new_base_name, columns_names, metadata[0], metadata[1], metadata[2])
         self.fill_base_with_values(new_base_name, data)
