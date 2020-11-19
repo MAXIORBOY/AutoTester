@@ -16,7 +16,7 @@ After nth correct answer on the test, the program will no longer choose that row
 ## Technology:  
 * ```Python``` 3.8
 * ```h5py``` 3.1.0
-* ```numpy``` 1.19.4
+* ```numpy``` 1.19.3
 * ```tkScrolledFrame``` 1.0.4
 
 ## Screenshots:
