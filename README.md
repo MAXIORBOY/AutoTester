@@ -8,7 +8,7 @@
 * What is a threshold / learning progress?  
 After nth correct answer on the test, the program will no longer choose that row in the following tests. The program will assume that you have learnt it and there is no reason to ask you about it again. 
 
-* Which character encoding system is used in Auto Tester?
+* Which character encoding system is used in Auto Tester?  
 Auto Tester uses UTF-8.
 
 ## Launch: 
