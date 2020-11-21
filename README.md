@@ -3,7 +3,7 @@
 ## Features:
 * Create your own databases via the creator or import them from a different file. 
 * Add (or edit) new data into your databases fast! You can fill and accept all entries without a mouse usage. During adding or editing a row in your database, you can use the Enter button. 
-* Test yourself! You have to fill (according to your database) the rest of the fields while having only one clue from one column. You can choose a number of questions and which column will be given at a test (random, first or last). Order of the rows will be randomized. Keep in mind that during tests your answers have to be identical to those saved in the database.
+* Test yourself! You have to fill (according to your database) the rest of the fields while having only one clue from a single column. You can choose a number of questions and which column will be given at a test (random, first or last). Order of the rows will be randomized. Keep in mind that during tests your answers have to be identical to those saved in the database.
 * You can change any option (except of a number of columns in a database) via settings.
 
 ## FAQ:    
