@@ -71,8 +71,6 @@ class MainWindow(BasicWindow):
             tk.Button(frame, text='DELETE', bd=4, font=12, command=lambda c=i: [self.confirm_base_removal(partial(button_base_name, self.base_handle.get_bases_names()[c]).args[0])]).pack(side=tk.LEFT)
             frame.pack()
 
-        inner_frame.pack()
-
         tk.Button(self.window, text='ADD NEW BASE', bd=4, font=12, command=lambda: [self.base_handle.file.close(), self.window.destroy(), BaseCreator().run()]).pack()
         tk.Label(self.window, text='', font=12).pack()
         tk.Button(self.window, text='EXIT', bd=4, font=12, command=lambda: [self.base_handle.file.close(), self.window.destroy()]).pack()
@@ -273,8 +271,6 @@ class BaseCreator(BasicWindow):
             l_box.pack(side=tk.LEFT)
             tk.Button(frame, text='IMPORT', bd=4, font=12, command=lambda c=i: [self.import_button_command(partial(button_base_name, base_names[c]).args[0], imported_base)]).pack(side=tk.LEFT)
             frame.pack()
-
-        inner_frame.pack()
 
         tk.Button(self.window, text='BACK', bd=4, font=12, command=lambda: [imported_base.file.close(), self.base_handle.file.close(), self.window.destroy(), MainWindow().run()]).pack()
 
